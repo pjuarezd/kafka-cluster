@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: producer
+  labels:
+    app: kafka-client
+spec:
+  template:
+    spec:
+      containers:
+      - name: producer
+        image: pjuarezd/kafka-client:go
+        command: ["./kafka-client",  "producer", "--topic example", "--file example/audit.csv "]
+      restartPolicy: Never
+  backoffLimit: 1
