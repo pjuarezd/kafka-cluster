@@ -9,7 +9,7 @@ spec:
     spec:
       containers:
       - name: producer
-        image: pjuarezd/kafka-client:go
-        command: ["./kafka-client",  "producer", "--topic example", "--file example/audit.csv "]
+        image: pjuarezd/kafka-client:latest
+        command: ["./kafka-client",  "producer", "--topic", "example", "--file", "example/audit.csv"]
       restartPolicy: Never
   backoffLimit: 1

@@ -35,10 +35,10 @@ strimzi-operator:
 kudo-operator:
 	@echo todo
 
-client-producer:
-	@echo kubectl apply -f client/kafka-client-producer.yaml
+producer:
+	@kubectl apply -f client/kafka-client-producer.yaml -n kafka
 	@echo TODO: wait and see logs
 
-client-consumer:
-	@echo kubectl apply -f client/kafka-client-consumer.yaml
+consumer:
+	@kubectl apply -f client/kafka-client-consumer.yaml
 	@echo TODO: wait and see logs
