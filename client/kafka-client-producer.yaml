@@ -5,11 +5,12 @@ metadata:
   labels:
     app: kafka-client
 spec:
+  ttlSecondsAfterFinished: 0
   template:
     spec:
       containers:
       - name: producer
         image: pjuarezd/kafka-client:latest
-        command: ["./kafka-client",  "producer", "--topic", "example", "--file", "example/audit.csv"]
+        command: ["./kafka-client",  "producer", "--topic", "example", "--file", "example/audit.csv", "--server", "my-cluster-kafka-bootstrap:9092"]
       restartPolicy: Never
   backoffLimit: 1

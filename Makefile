@@ -40,5 +40,5 @@ producer:
 	@echo TODO: wait and see logs
 
 consumer:
-	@kubectl apply -f client/kafka-client-consumer.yaml
+	@kubectl apply -f client/kafka-client-consumer.yaml -n kafka
 	@echo TODO: wait and see logs

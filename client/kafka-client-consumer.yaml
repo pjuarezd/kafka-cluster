@@ -1,0 +1,15 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: consumer
+  labels:
+    app: kafka-client
+spec:
+  template:
+    spec:
+      containers:
+      - name: consumer
+        image: pjuarezd/kafka-client:latest
+        command: ["./kafka-client",  "consumer", "--topic", "example", "--server", "my-cluster-kafka-bootstrap:9092"]
+      restartPolicy: Never
+  backoffLimit: 1
