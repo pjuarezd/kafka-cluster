@@ -40,16 +40,16 @@ internal-cluster:
 external-cluster:
 	@kubectl apply -f deployments/strimzi/kafka-external.yaml -n kafka
 
+connector-cluster:
+	@kubectl apply -f minio/kafka-connector-cluster.yaml -n kafka
 producer:
 	@kubectl apply -f client/kafka-client-producer.yaml -n kafka
 	@echo TODO: wait and see logs
-
 consumer:
 	@kubectl apply -f client/kafka-client-consumer.yaml -n kafka
 	@echo TODO: wait and see logs
-
-build-connector-image:
-	@docker build -t docker.io/pjuarezd/minio-kafka-connector:latest minio/
-	@docker push docker.io/pjuarezd/minio-kafka-connector:latest
-kafka-connector:
-	@kubectl apply -f minio/kafka-sink-connector.yaml -n kafka
+# build-connector-image:
+# 	@docker build -t docker.io/pjuarezd/minio-kafka-connector:latest minio/
+#	@docker push docker.io/pjuarezd/minio-kafka-connector:latest
+connector:
+	@kubectl apply -f minio/s3-sink-connector.yaml -n kafka

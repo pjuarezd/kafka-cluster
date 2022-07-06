@@ -1,0 +1,41 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: connector-cluster
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+  labels:
+    strimzi.io/cluster: cl-01
+spec:
+  image: docker.io/pjuarezd/minio-kafka-connector:latest
+  replicas: 1
+  bootstrapServers: cl-01-kafka-bootstrap:9092
+  build:
+    output:
+      type: docker
+      image: docker.io/pjuarezd/minio-kafka-connector:latest
+      pushSecret: regcred
+    plugins:
+      - name: minio-connector
+        artifacts:
+          - type: zip
+            url: https://api.hub.confluent.io/api/plugins/confluentinc/kafka-connect-s3/versions/5.2.0/archive
+  externalConfiguration:
+    env:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: aws-creds
+            key: awsAccessKey
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: aws-creds
+            key: awsSecretAccessKey
+  config:
+    group.id: minio-connector
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: org.apache.kafka.connect.storage.StringConverter
+    config.storage.replication.factor: 1
+    offset.storage.replication.factor: 1
+    status.storage.replication.factor: 1
