@@ -1,0 +1,61 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnect
+metadata:
+  name: cl-01
+  namespace: kafka
+  annotations:
+    strimzi.io/use-connector-resources: "true"
+  labels:
+    strimzi.io/cluster: cl-01
+spec:
+  image: docker.io/pjuarezd/minio-kafka-connector:latest
+  replicas: 1
+  #class: io.confluent.connect.s3.S3SinkConnector
+  bootstrapServers: cl-01-kafka-bootstrap:9092
+#  tls:
+#    trustedCertificates:
+#      - secretName: my-cluster-cluster-ca-cert
+#        certificate: ca.crt
+#  build:
+#    output:
+#      type: docker
+#      image: docker.io/pjuarezd/minio-kafka-connector:latest
+#      pushSecret: regcred
+#    plugins:
+#      - name: minio-connector
+#        artifacts:
+#          - type: zip
+#            url: https://api.hub.confluent.io/api/plugins/confluentinc/kafka-connect-s3/versions/5.2.0/archive
+  externalConfiguration:
+    env:
+      - name: AWS_ACCESS_KEY_ID
+        valueFrom:
+          secretKeyRef:
+            name: aws-creds
+            key: awsAccessKey
+      - name: AWS_SECRET_ACCESS_KEY
+        valueFrom:
+          secretKeyRef:
+            name: aws-creds
+            key: awsSecretAccessKey
+  config:
+    group.id: minio-connector
+    plugin.path: /opt/kafka/plugins
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: org.apache.kafka.connect.storage.StringConverter
+    offset.storage.file.filename: /tmp/connect.offsets
+#S3-sink propeties
+    name: s3-sink
+    connector.class: io.confluent.connect.s3.S3SinkConnector
+    tasks.max: 1
+    topics: example
+    s3.region: us-east-1
+    s3.bucket.name: kafka-bucket
+    s3.part.size: 5242880
+    flush.size: 3
+    store.url: http://minio.ns-1.svc.cluster.local:80
+    storage.class: io.confluent.connect.s3.storage.S3Storage
+    format.class: io.confluent.connect.s3.format.ison.JsonFormat
+    schema.generator.class: io.confluent.connect.storage.hive.schema.DefaultSchemaGenerator
+    #partitioner.class: io.confluent.connect.storage.partitioner.DefaultPartitioner
+    schema.compatibility: NONE

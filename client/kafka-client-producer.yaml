@@ -11,6 +11,6 @@ spec:
       containers:
       - name: producer
         image: pjuarezd/kafka-client:latest
-        command: ["./kafka-client",  "producer", "--topic", "example", "--file", "example/audit.csv", "--server", "my-cluster-kafka-bootstrap:9092"]
+        command: ["./kafka-client",  "producer", "--topic", "example", "--file", "example/audit.csv", "--server", "cl-01-kafka-bootstrap:9092"]
       restartPolicy: Never
-  backoffLimit: 1
+

@@ -10,6 +10,6 @@ spec:
       containers:
       - name: consumer
         image: pjuarezd/kafka-client:latest
-        command: ["./kafka-client",  "consumer", "--topic", "example", "--server", "my-cluster-kafka-bootstrap:9092"]
+        command: ["./kafka-client",  "consumer", "--topic", "example", "--server", "cl-01-kafka-bootstrap:9092"]
       restartPolicy: Never
   backoffLimit: 1
