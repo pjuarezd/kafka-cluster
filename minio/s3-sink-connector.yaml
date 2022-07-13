@@ -13,7 +13,7 @@ spec:
     s3.bucket.name: kafka
     s3.part.size: 5242880
     flush.size: 20
-    store.url: http://minio.ns-1.svc.cluster.local:80
+    store.url: http://minio.minio-tenant-1.svc.cluster.local:80
     storage.class: io.confluent.connect.s3.storage.S3Storage
     format.class: io.confluent.connect.s3.format.json.JsonFormat
     partitioner.class: io.confluent.connect.storage.partitioner.DefaultPartitioner

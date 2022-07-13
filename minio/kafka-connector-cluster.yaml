@@ -19,7 +19,7 @@ spec:
       - name: minio-connector
         artifacts:
           - type: zip
-            url: https://api.hub.confluent.io/api/plugins/confluentinc/kafka-connect-s3/versions/5.2.0/archive
+            url: https://api.hub.confluent.io/api/plugins/confluentinc/kafka-connect-s3/versions/10.0.9/archive
   externalConfiguration:
     env:
       - name: AWS_ACCESS_KEY_ID
