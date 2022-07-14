@@ -1,3 +1,4 @@
+#This example shows how to create the Connector cluster image
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnect
 metadata:
@@ -7,9 +8,22 @@ metadata:
   labels:
     strimzi.io/cluster: cl-01
 spec:
+  version: 3.2.0
   image: docker.io/pjuarezd/minio-kafka-connector:latest
-  replicas: 1
-  bootstrapServers: cl-01-kafka-bootstrap:9092
+  replicas: 3
+  bootstrapServers: cl-01-kafka-bootstrap:9093
+  tls:
+    trustedCertificates:
+      - secretName: cl-01-cluster-ca-cert
+        certificate: ca.crt
+      - secretName: minio-tenant-1-ca-cert
+        certificate: minio-tenant-1-tls.pem
+  authentication:
+    type: tls
+    certificateAndKey:
+      secretName: my-connect
+      certificate: user.crt
+      key: user.key
   build:
     output:
       type: docker
@@ -36,6 +50,9 @@ spec:
     group.id: minio-connector
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: org.apache.kafka.connect.storage.StringConverter
-    config.storage.replication.factor: 1
-    offset.storage.replication.factor: 1
-    status.storage.replication.factor: 1
+    config.storage.replication.factor: 3
+    offset.storage.replication.factor: 3
+    status.storage.replication.factor: 3
+    offset.storage.topic: connect-cluster-offsets
+    config.storage.topic: connect-cluster-configs
+    status.storage.topic: connect-cluster-status

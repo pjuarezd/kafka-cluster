@@ -1,2 +1,4 @@
 *.key
 .vscode
+*.pem
+*.crt
