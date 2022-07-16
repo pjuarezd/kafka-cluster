@@ -5,8 +5,8 @@ STRIMZI_VERSION ?=latest
 OPERATOR_NAMESPACE ?=kafka
 MINIO_TENANT_NAMESPACE ?=minio-tenant-1
 SET_STRIMZI_VERSION = $(eval STRIMZI_VERSION=$(shell curl -sL https://api.github.com/repos/strimzi/strimzi-kafka-operator/releases/latest  | jq -r ".tag_name"))
-GET_MINIO_CERT = $(shell kubectl get secret  -n minio-tenant-1 minio-tenant-1-tls -o "jsonpath={.data['public\.crt']}" | base64 --decode)
-GET_CA_CERT = $(shell kubectl get secret  -n minio-tenant-1 minio-tenant-1-tls -o "jsonpath={.data['public\.crt']}" | base64 --decode)
+GET_MINIO_CERT = $(shell kubectl get secret  -n $(MINIO_TENANT_NAMESPACE) $(MINIO_TENANT_NAMESPACE)-tls -o "jsonpath={.data['public\.crt']}" | base64 --decode)
+GET_CA_CERT = $(shell kubectl get secret  -n $(MINIO_TENANT_NAMESPACE) $(MINIO_TENANT_NAMESPACE)-tls -o "jsonpath={.data['public\.crt']}" | base64 --decode)
 .PHONY: default
 
 default:
@@ -25,9 +25,11 @@ create-docker-login-secret: operator-namespace
 	@kubectl create secret docker-registry regcred --docker-server=https://index.docker.io/v1/ --docker-username=${DOCKER_USER} --docker-password=${DOCKER_HUB_PASSWORD} --docker-email=${DOCKER_EMAIl} -n $(OPERATOR_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
 create-minio-secrets:
-	@kubectl get secret -n minio-tenant-1 minio-tenant-1-tls -o "jsonpath={.data['public\.crt']}" | base64 --decode > minio-tenant-1-tls.pem
-	@kubectl get configmap -n kafka kube-root-ca.crt -o "jsonpath={.data['ca\.crt']}" >> minio-tenant-1-tls.pem
-	@kubectl create secret generic minio-tenant-1-ca-cert -n "$(OPERATOR_NAMESPACE)" --from-file=minio.minio-tenant-1.svc.cluster.local=minio-tenant-1-tls.pem
+# This secret doesn't exists when minio is not setup for tls
+#	@kubectl get secret -n $(MINIO_TENANT_NAMESPACE) $(MINIO_TENANT_NAMESPACE)-tls -o "jsonpath={.data['public\.crt']}" | base64 --decode > $(MINIO_TENANT_NAMESPACE)-tls.pem
+#	@kubectl create secret generic $(MINIO_TENANT_NAMESPACE)-ca-cert -n "$(OPERATOR_NAMESPACE)" --from-file=minio.$(MINIO_TENANT_NAMESPACE).svc.cluster.local=$(MINIO_TENANT_NAMESPACE)-tls.pem
+	@kubectl get configmap -n kafka kube-root-ca.crt -o "jsonpath={.data['ca\.crt']}" >> kube-root-ca.crt
+	@kubectl create secret generic kube-root-ca -n "$(OPERATOR_NAMESPACE)" --from-file=ca.crt=kube-root-ca.crt
 	
 #	@kubectl create secret generic kube-root-ca -n "$(OPERATOR_NAMESPACE)" --from-file=ca.crt=kube-root-ca.crt
 	@kubectl apply -f minio/bucket-credentials-secret.yaml -n $(OPERATOR_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
@@ -45,19 +47,22 @@ minio-operator:
 	@kubectl apply -k github.com/minio/operator/\?ref\=${MINIO_VERSION} -n minio-operator
 	@kubectl minio init
 	@kubectl apply -f minio/console-sa-secret.yaml -n minio-operator
-#	kubectl -n minio-operator get secret ${$(kubectl get -n minio-operator serviceaccount console-sa -o jsonpath="{.secrets[0].name}"):-console-sa-secret} -o jsonpath="{.data.token}" | base64 --decode > minio-token.key
+	@kubectl wait --for=condition=ready pod -l name=minio-operator -n minio-operator --timeout=600s
+	@kubectl -n minio-operator get secret console-sa-secret -o jsonpath="{.data.token}" | base64 --decode > minio-operator.key
 
 minio-tenant:
-	@kubectl create namespace minio-tenant-1  --dry-run=client -o yaml | kubectl apply -f -
-	@kubectl minio tenant create minio-tenant-1   \
-		--servers                 3               \
-		--volumes                 6               \
-		--capacity                16Ti            \
-		--storage-class           standard        \
-		--namespace               minio-tenant-1
-#	@kubectl wait tenants/minio-tenant-1 -n minio-tenant-1 --for=condition=Initialized --timeout=3600s
+	@kubectl create namespace $(MINIO_TENANT_NAMESPACE)  --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl minio tenant create $(MINIO_TENANT_NAMESPACE)   \
+		--servers                 3                          \
+		--volumes                 6                          \
+		--capacity                16Ti                       \
+		--storage-class           standard                   \
+		--namespace               $(MINIO_TENANT_NAMESPACE)  \
+		--enable-tls=false
+#	@kubectl wait tenants/$(MINIO_TENANT_NAMESPACE) -n $(MINIO_TENANT_NAMESPACE) --for=condition=Initialized --timeout=3600s
 setup-bucket:
-	@kubectl apply -f minio/setup-bucket.yaml -n minio-tenant-1
+	@kubectl apply -f minio/setup-bucket.yaml -n $(MINIO_TENANT_NAMESPACE)
+	@kubectl wait --for=condition=complete Job/minio-setup --timeout=300s -n $(MINIO_TENANT_NAMESPACE)
 
 strimzi-operator-simplified: opearator-namespace
 	@kubectl apply -f 'https://strimzi.io/install/latest?namespace=$(OPERATOR_NAMESPACE)' -n $(OPERATOR_NAMESPACE)
@@ -88,7 +93,6 @@ connector-user:
 	@kubectl apply -f connector/connector-user.yaml -n $(OPERATOR_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
 connector-cluster: connector-user
-#	@kubectl get secret minio-tenant-1-tls -n minio-tenant-1 -o yaml | sed s/"\"namespace\":\"minio-tenant-1\""/"\"namespace\":$(OPERATOR_NAMESPACE)"/ |  kubectl apply -n=$(OPERATOR_NAMESPACE) -f -
 	@kubectl apply -f connector/kafka-connector-cluster.yaml -n $(OPERATOR_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
 producer:

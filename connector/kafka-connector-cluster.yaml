@@ -19,12 +19,12 @@ spec:
   bootstrapServers: cl-01-kafka-bootstrap:9093
   tls:
     trustedCertificates:
-      # - secretName: kube-root-ca
-      #   certificate: ca.crt
+      - secretName: kube-root-ca
+        certificate: ca.crt
       - secretName: cl-01-cluster-ca-cert
         certificate: ca.crt
-      - secretName: minio-tenant-1-ca-cert
-        certificate: minio.minio-tenant-1.svc.cluster.local
+  #- secretName: minio-tenant-1-ca-cert
+  #  certificate: minio.minio-tenant-1.svc.cluster.local
   authentication:
     type: tls
     certificateAndKey:

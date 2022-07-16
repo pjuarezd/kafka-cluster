@@ -61,4 +61,5 @@ spec:
                   key: CONSOLE_SECRET_KEY
 
             - name: MC_HOST_local
-              value: https://$(ACCESS_KEY):$(SECRET_KEY)@minio.minio-tenant-1.svc.cluster.local:443
+              value: http://$(ACCESS_KEY):$(SECRET_KEY)@minio.minio-tenant-1.svc.cluster.local
+              #value: https://$(ACCESS_KEY):$(SECRET_KEY)@minio.minio-tenant-1.svc.cluster.local:443
