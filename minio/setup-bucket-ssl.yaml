@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: 
+  name: start-config-script
+data:
+  setup.sh: |
+    #!/bin/bash
+    mc mb local/kafka
+    mc admin policy add local kafka-rw /start-config/kafka-policy.json
+    mc admin user add local kafka-user kafka-user
+    mc admin policy set local kafka-rw user=kafka-user
+  kafka-policy.json: |
+    {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": [
+                    "s3:*"
+                ],
+                "Resource": [
+                    "arn:aws:s3:::kafka",
+                    "arn:aws:s3:::kafka/*"
+                ]
+            }
+        ]
+    }
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: minio-setup
+spec:
+  backoffLimit: 1
+  template:
+    spec:
+      restartPolicy: Never
+      volumes:
+        - name: start-config
+          configMap:
+            name: start-config-script
+            defaultMode: 0744
+      containers:
+        - name: mc
+          image: minio/mc
+          command: ["/start-config/setup.sh"]
+          volumeMounts:
+            - name: start-config
+              mountPath: /start-config/
+          env:
+            - name: ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-tenant-1-user-1
+                  key: CONSOLE_ACCESS_KEY
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-tenant-1-user-1
+                  key: CONSOLE_SECRET_KEY
+
+            - name: MC_HOST_local
+              value: https://$(ACCESS_KEY):$(SECRET_KEY)@minio.minio-tenant-1.svc.cluster.local
+
