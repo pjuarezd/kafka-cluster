@@ -1,4 +1,4 @@
-MINIO_VERSION ?=v4.4.25
+MINIO_VERSION ?=v4.4.26
 DOCKER_USER ?=pjuarezd
 DOCKER_EMAIl ?=pjuarezd@users.noreply.github.com
 STRIMZI_VERSION ?=latest
@@ -35,8 +35,8 @@ create-minio-secrets:
 	@kubectl apply -f minio/bucket-credentials-secret.yaml -n $(OPERATOR_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
 kubernetes-dashboard:
-	@kubectl create ns kubernetes-dashboard
-	@kubectl apply -f kubernetes-datshboard.yaml
+	@kubectl create ns kubernetes-dashboard --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl apply -f kubernetes-dashboard.yaml
 	@kubectl apply -f kubernetes-dashboard-admin-user.yaml
 	@kubectl -n kubernetes-dashboard create token admin-user >> admin-user.key
 #	LOCAL ONLY, URL where dashboard is available	
@@ -58,8 +58,8 @@ minio-tenant:
 		--capacity                16Ti                       \
 		--storage-class           standard                   \
 		--namespace               $(MINIO_TENANT_NAMESPACE)  \
-		--enable-tls=false
-#	@kubectl wait tenants/$(MINIO_TENANT_NAMESPACE) -n $(MINIO_TENANT_NAMESPACE) --for=condition=Initialized --timeout=3600s
+		--disable-tls
+	@kubectl wait pod --for=condition=ready -l name=minio -n $(MINIO_TENANT_NAMESPACE)  --timeout=3600s
 setup-bucket:
 	@kubectl apply -f minio/setup-bucket.yaml -n $(MINIO_TENANT_NAMESPACE)
 	@kubectl wait --for=condition=complete Job/minio-setup --timeout=300s -n $(MINIO_TENANT_NAMESPACE)
