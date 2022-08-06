@@ -1,4 +1,4 @@
-MINIO_VERSION ?=v4.4.26
+MINIO_VERSION ?=v4.4.28
 DOCKER_USER ?=pjuarezd
 DOCKER_EMAIl ?=pjuarezd@users.noreply.github.com
 STRIMZI_VERSION ?=latest
@@ -7,6 +7,7 @@ MINIO_TENANT_NAMESPACE ?=minio-tenant-1
 SET_STRIMZI_VERSION = $(eval STRIMZI_VERSION=$(shell curl -sL https://api.github.com/repos/strimzi/strimzi-kafka-operator/releases/latest  | jq -r ".tag_name"))
 GET_MINIO_CERT = $(shell kubectl get secret  -n $(MINIO_TENANT_NAMESPACE) $(MINIO_TENANT_NAMESPACE)-tls -o "jsonpath={.data['public\.crt']}" | base64 --decode)
 GET_CA_CERT = $(shell kubectl get secret  -n $(MINIO_TENANT_NAMESPACE) $(MINIO_TENANT_NAMESPACE)-tls -o "jsonpath={.data['public\.crt']}" | base64 --decode)
+KEYSTOREPASS ?=changeit
 .PHONY: default
 
 default:
@@ -26,11 +27,13 @@ create-docker-login-secret: operator-namespace
 
 create-minio-secrets:
 # This secret doesn't exists when minio is not setup for tls
-#	@kubectl get secret -n $(MINIO_TENANT_NAMESPACE) $(MINIO_TENANT_NAMESPACE)-tls -o "jsonpath={.data['public\.crt']}" | base64 --decode > $(MINIO_TENANT_NAMESPACE)-tls.pem
-#	@kubectl create secret generic $(MINIO_TENANT_NAMESPACE)-ca-cert -n "$(OPERATOR_NAMESPACE)" --from-file=minio.$(MINIO_TENANT_NAMESPACE).svc.cluster.local=$(MINIO_TENANT_NAMESPACE)-tls.pem
+	@kubectl get secret -n $(MINIO_TENANT_NAMESPACE) $(MINIO_TENANT_NAMESPACE)-tls -o "jsonpath={.data['public\.crt']}" | base64 --decode > $(MINIO_TENANT_NAMESPACE)-tls.pem
 	@kubectl get configmap -n kafka kube-root-ca.crt -o "jsonpath={.data['ca\.crt']}" >> kube-root-ca.crt
-	@kubectl create secret generic kube-root-ca -n "$(OPERATOR_NAMESPACE)" --from-file=ca.crt=kube-root-ca.crt
-	
+	@rm -f connector/truststore.p12
+	@keytool -keystore connector/truststore.p12 -storetype pkcs12 -alias minio.$(MINIO_TENANT_NAMESPACE).svc.cluster.local -storepass $(KEYSTOREPASS)  -import -file  $(MINIO_TENANT_NAMESPACE)-tls.pem -noprompt
+	@keytool -keystore connector/truststore.p12 -storetype pkcs12 -alias ca.crt -storepass $(KEYSTOREPASS) -import -file kube-root-ca.crt -noprompt
+	@kubectl create secret generic $(MINIO_TENANT_NAMESPACE)-truststore -n "$(OPERATOR_NAMESPACE)" --from-file=truststore.p12=connector/truststore.p12 --from-literal=truststore.password=$(KEYSTOREPASS)  --from-literal=truststore.type=pkcs12 --dry-run=client -oyaml | kubectl apply -f -
+#	@kubectl create secret generic $(MINIO_TENANT_NAMESPACE)-ca-cert -n "$(OPERATOR_NAMESPACE)" --from-file=minio.$(MINIO_TENANT_NAMESPACE).svc.cluster.local=$(MINIO_TENANT_NAMESPACE)-tls.pem
 #	@kubectl create secret generic kube-root-ca -n "$(OPERATOR_NAMESPACE)" --from-file=ca.crt=kube-root-ca.crt
 	@kubectl apply -f minio/bucket-credentials-secret.yaml -n $(OPERATOR_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
 
@@ -57,9 +60,8 @@ minio-tenant:
 		--volumes                 6                          \
 		--capacity                16Ti                       \
 		--storage-class           standard                   \
-		--namespace               $(MINIO_TENANT_NAMESPACE)  \
-		--disable-tls
-	@kubectl wait pod --for=condition=ready -l name=minio -n $(MINIO_TENANT_NAMESPACE)  --timeout=3600s
+		--namespace               $(MINIO_TENANT_NAMESPACE)
+#	@kubectl wait pod --for=condition=ready -l name=minio -n $(MINIO_TENANT_NAMESPACE)  --timeout=3600s
 setup-bucket:
 	@kubectl apply -f minio/setup-bucket.yaml -n $(MINIO_TENANT_NAMESPACE)
 	@kubectl wait --for=condition=complete Job/minio-setup --timeout=300s -n $(MINIO_TENANT_NAMESPACE)
@@ -105,8 +107,16 @@ consumer:
 	@kubectl logs Job/consumer -n $(OPERATOR_NAMESPACE) -f 
 
 build-connector-image: create-docker-login-secret
-	@docker build -t docker.io/pjuarezd/minio-kafka-connector:latest connector/
+	@docker build -t docker.io/pjuarezd/minio-kafka-connector:latest --no-cache connector/
 	@docker push docker.io/pjuarezd/minio-kafka-connector:latest
+
+image-test:
+	@rm -rf connector/s3-sink/*
+	@cd ../../confluentinc/kafka-connect-storage-cloud && mvn install
+#cd ../../confluentinc/kafka-connect-storage-cloud && mvn dependency:copy-dependencies -DoutputDirectory=/mydeps
+	@cp ../../confluentinc/kafka-connect-storage-cloud/kafka-connect-s3/target/components/packages/confluentinc-kafka-connect-s3-*.zip connector/s3-sink/
+	@docker build -t pjuarezd/minio-kafka-connector:test --no-cache -f connector/Dockerfile.image-test connector/
+	@kind load docker-image pjuarezd/minio-kafka-connector:test --name kind-cluster
 
 build-connector-cluster: create-docker-login-secret
 	@kubectl apply -f connector/kafka-connector-cluster-build.yaml -n $(OPERATOR_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -

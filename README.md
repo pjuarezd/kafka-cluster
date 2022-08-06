@@ -9,7 +9,7 @@ make setup-bucket
 make strimzi-cluster
 make create-minio-secrets
 make connector-cluster
-make connector
+make connector-s3
 make consumer
 make producer
 ```

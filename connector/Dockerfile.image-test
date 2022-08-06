@@ -1,0 +1,8 @@
+FROM quay.io/strimzi/kafka:0.29.0-kafka-3.2.0
+USER root:root
+RUN mkdir -p /opt/kafka/plugins/
+COPY s3-sink/confluentinc-kafka-connect-s3*.zip /opt/kafka/plugins/
+RUN  unzip -d /opt/kafka/plugins /opt/kafka/plugins/confluentinc-kafka-connect-s3-*.zip && \
+    ls /opt/kafka/plugins/confluentinc-kafka-connect-*.zip  && \
+    rm /opt/kafka/plugins/confluentinc-kafka-connect-*.zip 
+USER 1001
