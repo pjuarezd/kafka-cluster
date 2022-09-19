@@ -1,4 +1,4 @@
-MINIO_VERSION ?=v4.5
+MINIO_VERSION ?=v4.5.0
 DOCKER_USER ?=pjuarezd
 DOCKER_EMAIl ?=pjuarezd@users.noreply.github.com
 STRIMZI_VERSION ?=latest
