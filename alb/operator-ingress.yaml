@@ -1,0 +1,30 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: operator-ingress
+  namespace: minio-operator
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/tags: pedro-eks-cluster=alb
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:804065449417:certificate/3493eeee-850a-4010-afcf-225fb0f2a2b4
+    alb.ingress.kubernetes.io/subnets: subnet-011e060ab16b380b2, subnet-02e7ef7bffec9b8fa
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/success-codes: "200"
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]' #redirection from http to https
+spec:
+  ingressClassName: alb
+  rules:
+    - host: operator.minio.pedrojuarez.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: console
+                port:
+                  number: 9090

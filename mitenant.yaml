@@ -1,0 +1,254 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  creationTimestamp: "2023-04-20T23:38:29Z"
+  generation: 1
+  labels:
+    v1.min.io/pool: pool-0
+    v1.min.io/tenant: mitenant
+  name: mitenant-pool-0
+  namespace: mitenant
+  ownerReferences:
+  - apiVersion: minio.min.io/v2
+    blockOwnerDeletion: true
+    controller: true
+    kind: Tenant
+    name: mitenant
+    uid: 48d26e67-f642-49df-b98c-78216ecc4ff4
+  resourceVersion: "98565"
+  uid: d4d426f7-5151-4ee1-97d3-205b3ce4497f
+spec:
+  podManagementPolicy: Parallel
+  replicas: 4
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      v1.min.io/console: mitenant-console
+      v1.min.io/pool: pool-0
+      v1.min.io/tenant: mitenant
+  serviceName: mitenant-hl
+  template:
+    metadata:
+      annotations:
+        min.io/revision: "0"
+      creationTimestamp: null
+      labels:
+        v1.min.io/console: mitenant-console
+        v1.min.io/pool: pool-0
+        v1.min.io/tenant: mitenant
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: v1.min.io/tenant
+                operator: In
+                values:
+                - mitenant
+              - key: v1.min.io/pool
+                operator: In
+                values:
+                - pool-0
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - args:
+        - server
+        - --certs-dir
+        - /tmp/certs
+        - --console-address
+        - :9443
+        env:
+        - name: MINIO_CONFIG_ENV_FILE
+          value: /tmp/minio/config.env
+        - name: MINIO_OPERATOR_VERSION
+          value: (dev)
+        - name: MINIO_PROMETHEUS_JOB_ID
+          value: minio-job
+        - name: MINIO_SERVER_URL
+          value: https://minio.mitenant.svc.example.com:443
+        - name: MINIO_UPDATE
+          value: "on"
+        - name: MINIO_UPDATE_MINISIGN_PUBKEY
+          value: RWTx5Zr1tiHQLwG9keckT0c45M3AGeHD6IvimQHpyRywVWGbP1aVSGav
+        image: minio/minio:RELEASE.2023-03-24T21-41-23Z
+        imagePullPolicy: IfNotPresent
+        name: minio
+        ports:
+        - containerPort: 9000
+          protocol: TCP
+        - containerPort: 9443
+          protocol: TCP
+        resources:
+          requests:
+            cpu: "2"
+            memory: 5Gi
+        securityContext: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /tmp/minio/
+          name: cfg-vol
+        - mountPath: /export0
+          name: data0
+        - mountPath: /export1
+          name: data1
+        - mountPath: /export2
+          name: data2
+        - mountPath: /export3
+          name: data3
+        - mountPath: /tmp/certs
+          name: mitenant-tls
+      - args:
+        - sidecar
+        - --tenant
+        - mitenant
+        - --config-name
+        - mitenant-env-configuration
+        env:
+        - name: CLUSTER_DOMAIN
+          value: example.com
+        image: minio/operator:domain-1
+        imagePullPolicy: IfNotPresent
+        name: sidecar
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /tmp/minio/
+          name: cfg-vol
+        - mountPath: /tmp/minio-config
+          name: configuration
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - args:
+        - validate
+        - --tenant
+        - mitenant
+        env:
+        - name: CLUSTER_DOMAIN
+          value: example.com
+        image: minio/operator:domain-1
+        imagePullPolicy: IfNotPresent
+        name: validate-arguments
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /tmp/minio/
+          name: cfg-vol
+        - mountPath: /tmp/minio-config
+          name: configuration
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+      serviceAccount: mitenant-sa
+      serviceAccountName: mitenant-sa
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - emptyDir: {}
+        name: cfg-vol
+      - name: mitenant-tls
+        projected:
+          defaultMode: 420
+          sources:
+          - secret:
+              items:
+              - key: public.crt
+                path: public.crt
+              - key: private.key
+                path: private.key
+              - key: public.crt
+                path: CAs/public.crt
+              name: mitenant-tls
+          - secret:
+              items:
+              - key: public.crt
+                path: CAs/operator-ca.crt
+              name: operator-ca-tls
+      - name: configuration
+        projected:
+          defaultMode: 420
+          sources:
+          - secret:
+              name: mitenant-env-configuration
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: null
+      name: data0
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: "68719476736"
+      storageClassName: standard
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: null
+      name: data1
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: "68719476736"
+      storageClassName: standard
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: null
+      name: data2
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: "68719476736"
+      storageClassName: standard
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      creationTimestamp: null
+      name: data3
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: "68719476736"
+      storageClassName: standard
+      volumeMode: Filesystem
+    status:
+      phase: Pending
+status:
+  availableReplicas: 4
+  collisionCount: 0
+  currentReplicas: 4
+  currentRevision: mitenant-pool-0-5cb54d7996
+  observedGeneration: 1
+  readyReplicas: 4
+  replicas: 4
+  updateRevision: mitenant-pool-0-5cb54d7996
+  updatedReplicas: 4

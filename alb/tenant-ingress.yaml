@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: minio.pedrojuarez.me
+  namespace: minio-tenant-1
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/tags: pedro-eks-cluster=alb
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:804065449417:certificate/3493eeee-850a-4010-afcf-225fb0f2a2b4
+    alb.ingress.kubernetes.io/subnets: subnet-0e5c1342b427e7f9d, subnet-0bdc58ab96ec5d63b
+    alb.ingress.kubernetes.io/backend-protocol: HTTPS
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTPS
+    alb.ingress.kubernetes.io/success-codes: '200,403'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+spec:
+  ingressClassName: alb
+  rules:
+    - host: console.minio.pedrojuarez.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-tenant-1-console
+                port:
+                  number: 9443
+    - host: minio.pedrojuarez.me
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: minio
+                port:
+                  number: 443

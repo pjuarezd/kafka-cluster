@@ -123,3 +123,9 @@ build-connector-cluster: create-docker-login-secret
 
 connector-s3:
 	@kubectl apply -f connector/s3-sink-connector.yaml -n $(OPERATOR_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+
+elasticsearch:
+	@kubectl create -f https://download.elastic.co/downloads/eck/2.7.0/crds.yaml
+	@kubectl apply -f https://download.elastic.co/downloads/eck/2.7.0/operator.yaml
+	@kubectl apply -f elasticsearch/cluster.yaml
+	@kubectl apply -f elasticsearch/kibana.yaml

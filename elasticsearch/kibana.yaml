@@ -1,0 +1,17 @@
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: logs
+  namespace: elastic-system
+spec:
+  version: 8.7.0
+  count: 1
+  elasticsearchRef:
+    name: auditlogs
+    namespace: elastic-system
+  # config:
+  #   elasticsearch.hosts:
+  #     - https://auditlogs-es-http.svc:9200
+  #   elasticsearch.username: elastic
+  # secureSettings:
+  #   - secretName: elastic-auditlogs-user-password
