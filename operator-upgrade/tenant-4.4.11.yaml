@@ -1,0 +1,101 @@
+apiVersion: minio.min.io/v1
+kind: Tenant
+metadata:
+  generation: 1
+  name: minio-tenant-1
+  namespace: minio-tenant-1
+scheduler:
+  name: ""
+spec:
+  configuration:
+    name: minio-tenant-1-env-configuration
+  credsSecret:
+    name: minio-tenant-1-secret
+  exposeServices:
+    console: true
+    minio: true
+  imagePullSecret: {}
+  kes:
+    image: minio/kes:v0.17.6
+    kesSecret:
+      name: minio-tenant-1-secret-kes-configuration
+    replicas: 1
+    resources: {}
+    securityContext:
+      fsGroup: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+  log:
+    audit:
+      diskCapacityGB: 5
+    db:
+      resources: {}
+      securityContext:
+        fsGroup: 999
+        runAsGroup: 999
+        runAsNonRoot: true
+        runAsUser: 999
+      volumeClaimTemplate:
+        metadata:
+          creationTimestamp: null
+          name: minio-tenant-1-log
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: "5368709120"
+        status: {}
+    resources: {}
+    securityContext:
+      fsGroup: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+  mountPath: /export
+  pools:
+  - affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+            - key: v1.min.io/tenant
+              operator: In
+              values:
+              - minio-tenant-1
+            - key: v1.min.io/pool
+              operator: In
+              values:
+              - pool-0
+          topologyKey: kubernetes.io/hostname
+    name: pool-0
+    resources:
+      requests:
+        cpu: "2"
+        memory: 5Gi
+    servers: 4
+    volumeClaimTemplate:
+      metadata:
+        creationTimestamp: null
+        name: data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: "16106127360"
+        storageClassName: standard
+      status: {}
+    volumesPerServer: 1
+  prometheus:
+    diskCapacityGB: 5
+    resources: {}
+    securityContext:
+      fsGroup: 1000
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+  requestAutoCert: true
+  users:
+  - name: minio-tenant-1-user-0
