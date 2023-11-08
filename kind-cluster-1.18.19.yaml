@@ -1,0 +1,22 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: cluster118
+# runtimeConfig:
+#   "/apis/certificates.k8s.io/v1": "false"
+nodes:
+  - role: control-plane
+    image: kindest/node:v1.18.190@sha256:9dc1ef37c0b78edcaa475495449671ce3e3bd1dcbe305d95e734336f1300fae4
+  - role: control-plane
+    image: kindest/node:v1.18.190@sha256:9dc1ef37c0b78edcaa475495449671ce3e3bd1dcbe305d95e734336f1300fae4
+  - role: worker
+    image: kindest/node:v1.18.190@sha256:9dc1ef37c0b78edcaa475495449671ce3e3bd1dcbe305d95e734336f1300fae4
+  - role: worker
+    image: kindest/node:v1.18.190@sha256:9dc1ef37c0b78edcaa475495449671ce3e3bd1dcbe305d95e734336f1300fae4
+  - role: worker
+    image: kindest/node:v1.18.190@sha256:9dc1ef37c0b78edcaa475495449671ce3e3bd1dcbe305d95e734336f1300fae4
+  - role: worker
+    image: kindest/node:v1.18.190@sha256:9dc1ef37c0b78edcaa475495449671ce3e3bd1dcbe305d95e734336f1300fae4
+  - role: worker
+    image: kindest/node:v1.18.190@sha256:9dc1ef37c0b78edcaa475495449671ce3e3bd1dcbe305d95e734336f1300fae4
+  - role: worker
+    image: kindest/node:v1.18.190@sha256:9dc1ef37c0b78edcaa475495449671ce3e3bd1dcbe305d95e734336f1300fae4
